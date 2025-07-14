@@ -4,6 +4,9 @@ from PIL import Image, ImageColor, ImageDraw, ImageFilter, ImageFont
 
 from trdg.utils import get_text_width, get_text_height
 
+import textwrap
+import random as rnd
+
 # Thai Unicode reference: https://jrgraphix.net/r/Unicode/0E00-0E7F
 TH_TONE_MARKS = [
     "0xe47",
@@ -47,6 +50,18 @@ def generate(
         )
     elif orientation == 1:
         return _generate_vertical_text(
+            text,
+            font,
+            text_color,
+            font_size,
+            space_width,
+            character_spacing,
+            fit,
+            stroke_width,
+            stroke_fill,
+        )
+    elif orientation == 2:
+        return _generate_paragraph_text(
             text,
             font,
             text_color,
@@ -223,3 +238,114 @@ def _generate_vertical_text(
         return txt_img.crop(txt_img.getbbox()), txt_mask.crop(txt_img.getbbox())
     else:
         return txt_img, txt_mask
+
+
+def get_text_width(font, text):
+    return font.getbbox(text)[2]
+
+def get_text_height(font, text):
+    return font.getbbox(text)[3]
+
+def wrap_text_by_pixels(text, font, max_width):
+    words = text.split()
+    current_line = ''
+    lines = []
+
+    for word in words:
+        test_line = current_line + (" " if current_line else "") + word
+        w = get_text_width(font, test_line)
+        if w <= max_width:
+            current_line = test_line
+        else:
+            lines.append(current_line)
+            current_line = word
+    lines.append(current_line)
+    return "\n".join(lines)
+
+def _generate_paragraph_text(
+    text: str,
+    font: str,
+    text_color: str,
+    font_size: int,
+    space_width: int,
+    character_spacing: int,
+    fit: bool,
+    stroke_width: int = 0,
+    stroke_fill: str = "#282828",
+) -> Tuple:
+
+    # Load font
+    image_font = ImageFont.truetype(font=font, size=font_size)
+
+    # Dynamically estimate max width from text length
+    estimated_width = min(len(text) * font_size // 1.5, 1000)  # reasonable upper bound
+    max_width = max(int(estimated_width), 200)
+
+    # Wrap Arabic text to fit max width
+    wrapped_text = wrap_text_by_pixels(text, image_font, max_width)
+    lines = wrapped_text.split("\n")
+
+    # Text dimensions
+    line_heights = [get_text_height(image_font, line) for line in lines]
+    text_height = sum(line_heights) + (len(lines) - 1) * character_spacing
+    text_width = max([get_text_width(image_font, line) for line in lines])
+
+    # Create images
+    txt_img = Image.new("RGBA", (text_width, text_height), (0, 0, 0, 0))
+    txt_mask = Image.new("RGB", (text_width, text_height), (0, 0, 0))
+
+    draw = ImageDraw.Draw(txt_img)
+    draw_mask = ImageDraw.Draw(txt_mask)
+    draw_mask.fontmode = "1"
+
+    # Random text color within range
+    colors = [ImageColor.getrgb(c) for c in text_color.split(",")]
+    c1, c2 = colors[0], colors[-1]
+    fill = (
+        rnd.randint(c1[0], c2[0]),
+        rnd.randint(c1[1], c2[1]),
+        rnd.randint(c1[2], c2[2]),
+    )
+
+    # Random stroke color within range
+    stroke_colors = [ImageColor.getrgb(c) for c in stroke_fill.split(",")]
+    stroke_c1, stroke_c2 = stroke_colors[0], stroke_colors[-1]
+    stroke_fill = (
+        rnd.randint(stroke_c1[0], stroke_c2[0]),
+        rnd.randint(stroke_c1[1], stroke_c2[1]),
+        rnd.randint(stroke_c1[2], stroke_c2[2]),
+    )
+
+    # Draw text and mask
+    current_y = 0
+    for i, line in enumerate(lines): 
+        line_w = get_text_width(image_font, line)
+        x = text_width - line_w  # right align
+
+        draw.text( 
+            (x, current_y), 
+            line, 
+            fill=fill, 
+            font=image_font, 
+            stroke_width=stroke_width, 
+            stroke_fill=stroke_fill, 
+        ) 
+        draw_mask.text( 
+            (x, current_y), 
+            line, 
+            fill=((i + 1) // (255 * 255), (i + 1) // 255, (i + 1) % 255), 
+            font=image_font, 
+            stroke_width=stroke_width, 
+            stroke_fill=stroke_fill, 
+        ) 
+        current_y += line_heights[i] + character_spacing
+
+
+    # Crop output if fit is True
+    
+    if fit:
+        bbox = txt_img.getbbox()
+        if bbox:  # In case bbox is None (completely transparent)
+            txt_img = txt_img.crop(bbox)
+            txt_mask = txt_mask.crop(bbox)
+    return txt_img, txt_mask

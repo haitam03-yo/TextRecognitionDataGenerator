@@ -152,6 +152,14 @@ class FakeTextDataGenerator(object):
             )
             background_width = size
             background_height = new_height + vertical_margin
+        elif orientation == 2:
+            # For paragraph, we keep the distorted_img and mask as-is (no resize)
+            resized_img = distorted_img
+            resized_mask = distorted_mask
+
+            # Set background size same as the image size + margins
+            background_width = distorted_img.size[0] + horizontal_margin
+            background_height = distorted_img.size[1] + vertical_margin
         else:
             raise ValueError("Invalid orientation")
 
@@ -182,6 +190,23 @@ class FakeTextDataGenerator(object):
         # Comparing average pixel value of text and background image #
         ##############################################################
         try:
+            print("resized_img:")
+            print("  mode:", resized_img.mode)
+            print("  size:", resized_img.size)
+
+            print("resized_mask:")
+            print("  mode:", resized_mask.mode)
+            print("  size:", resized_mask.size)
+
+            # Get the 3rd channel (alpha if RGBA)
+            try:
+                mask_channel = resized_mask.split()[2]
+                print("resized_mask.split()[2]:")
+                print("  mode:", mask_channel.mode)
+                print("  size:", mask_channel.size)
+            except Exception as e:
+                print("Error accessing resized_mask.split()[2]:", e)
+
             resized_img_st = ImageStat.Stat(resized_img, resized_mask.split()[2])
             background_img_st = ImageStat.Stat(background_img)
 
@@ -196,7 +221,9 @@ class FakeTextDataGenerator(object):
 
                 return
         except Exception as err:
+            print(f"Error during image contrast check: {err}")
             return
+
 
         #############################
         # Place text with alignment #
