@@ -244,23 +244,37 @@ def get_text_width(font, text):
     return font.getbbox(text)[2]
 
 def get_text_height(font, text):
+    if not text:
+        return font.getbbox("ا")[3]
     return font.getbbox(text)[3]
 
-def wrap_text_by_pixels(text, font, max_width):
-    words = text.split()
-    current_line = ''
+def wrap_text_by_pixels(text, font, max_width, max_lines):
     lines = []
+    paragraphs = text.split('\n')
 
-    for word in words:
-        test_line = current_line + (" " if current_line else "") + word
-        w = get_text_width(font, test_line)
-        if w <= max_width:
-            current_line = test_line
-        else:
+    for paragraph in paragraphs:
+        words = paragraph.split()
+            
+        current_line = ''
+        
+        for word in words:
+            if len(lines) >= max_lines:
+                break
+
+            test_line = current_line + (" " if current_line else "") + word
+            w = get_text_width(font, test_line)
+            if w <= max_width:
+                current_line = test_line
+            else:
+                lines.append(current_line)
+                current_line = word
+
+        if len(lines) < max_lines:
             lines.append(current_line)
-            current_line = word
-    lines.append(current_line)
-    return "\n".join(lines)
+
+
+    return lines[:max_lines]
+
 
 def _generate_paragraph_text(
     text: str,
@@ -272,23 +286,56 @@ def _generate_paragraph_text(
     fit: bool,
     stroke_width: int = 0,
     stroke_fill: str = "#282828",
+    max_text_height: int = 1350,
+    max_lines: int = 11
 ) -> Tuple:
 
+        
+    print(font)
     # Load font
+    if isinstance(font_size, list):
+        font_size = rnd.randint(font_size[0], font_size[1])
+
+        
     image_font = ImageFont.truetype(font=font, size=font_size)
+    
+    title = ''
+    if isinstance(text, dict):
+        title = text.get("title","AtlasIA")
+        text = text.get("content","")
 
     # Dynamically estimate max width from text length
     estimated_width = min(len(text) * font_size // 1.5, 1000)  # reasonable upper bound
     max_width = max(int(estimated_width), 200)
+    
+    min_default_width = rnd.choice([800, 1000, 1500, 1600])
+    estimated_width = min(len(text) * font_size // 1.5, min_default_width)
+    max_width = max(int(estimated_width), 800)
 
     # Wrap Arabic text to fit max width
-    wrapped_text = wrap_text_by_pixels(text, image_font, max_width)
-    lines = wrapped_text.split("\n")
-
-    # Text dimensions
+    
+    lines = wrap_text_by_pixels(text, image_font, max_width, max_lines)
+    if title:
+        lines.insert(0, '')
+        lines.insert(0, title)
+    print('_'*20)
+    print(lines)
+    print('_'*20)
+    
+    # Recalculate text height
     line_heights = [get_text_height(image_font, line) for line in lines]
+    character_spacing = rnd.randint(1,4)  # or your config value
     text_height = sum(line_heights) + (len(lines) - 1) * character_spacing
     text_width = max([get_text_width(image_font, line) for line in lines])
+    # Trim lines if total height is too big
+    while text_height > max_text_height and len(lines) > 1:
+        lines = lines[:-1]  # remove last line
+        line_heights = [get_text_height(image_font, line) for line in lines]
+        text_height = sum(line_heights) + (len(lines) - 1) * character_spacing
+
+        
+        text_width = max([get_text_width(image_font, line) for line in lines])
+        print("one line was removed")
 
     # Create images
     txt_img = Image.new("RGBA", (text_width, text_height), (0, 0, 0, 0))
@@ -318,9 +365,29 @@ def _generate_paragraph_text(
 
     # Draw text and mask
     current_y = 0
+    last_added_y = 0
+    
     for i, line in enumerate(lines): 
+        if line=='':
+            current_y += last_added_y//2
+            print('+'*20)
+            print("entered")
+            print('+'*20)
+            
+            continue
+        
         line_w = get_text_width(image_font, line)
-        x = text_width - line_w  # right align
+        if title and i == 0:
+            rnd_num = rnd.random()
+            line_w = get_text_width(image_font, line)
+            if rnd_num > 0.5:
+                x = max(0, (text_width - line_w) // 2)  # center
+            else:
+                x = text_width - line_w 
+        else:
+            
+            x = text_width - line_w  
+        
 
         draw.text( 
             (x, current_y), 
@@ -338,7 +405,8 @@ def _generate_paragraph_text(
             stroke_width=stroke_width, 
             stroke_fill=stroke_fill, 
         ) 
-        current_y += line_heights[i] + character_spacing
+        last_added_y = line_heights[i] + character_spacing
+        current_y += last_added_y
 
 
     # Crop output if fit is True

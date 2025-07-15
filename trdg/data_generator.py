@@ -54,10 +54,12 @@ class FakeTextDataGenerator(object):
         stroke_fill: str = "#282828",
         image_mode: str = "RGB",
         output_bboxes: int = 0,
+        blured_data_percetage: float = 0.2,
     ) -> Image:
         image = None
-
-        margin_top, margin_left, margin_bottom, margin_right = margins
+        
+        
+        margin_top, margin_left, margin_bottom, margin_right = rnd.choice(margins)
         horizontal_margin = margin_left + margin_right
         vertical_margin = margin_top + margin_bottom
 
@@ -178,6 +180,16 @@ class FakeTextDataGenerator(object):
             background_img = background_generator.quasicrystal(
                 background_height, background_width
             )
+        elif background_type == 3:
+            rand_num = rnd.random()  # Random float between 0 and 1
+            if rand_num > 0.3:
+                background_img = background_generator.plain_white(
+                    background_height, background_width
+                )
+            else:
+                background_img = background_generator.gaussian_noise(
+                    background_height, background_width
+                )
         else:
             background_img = background_generator.image(
                 background_height, background_width, image_dir
@@ -190,7 +202,7 @@ class FakeTextDataGenerator(object):
         # Comparing average pixel value of text and background image #
         ##############################################################
         try:
-            print("resized_img:")
+            '''print("resized_img:")
             print("  mode:", resized_img.mode)
             print("  size:", resized_img.size)
 
@@ -205,7 +217,7 @@ class FakeTextDataGenerator(object):
                 print("  mode:", mask_channel.mode)
                 print("  size:", mask_channel.size)
             except Exception as e:
-                print("Error accessing resized_mask.split()[2]:", e)
+                print("Error accessing resized_mask.split()[2]:", e)'''
 
             resized_img_st = ImageStat.Stat(resized_img, resized_mask.split()[2])
             background_img_st = ImageStat.Stat(background_img)
@@ -265,7 +277,10 @@ class FakeTextDataGenerator(object):
         #######################
         # Apply gaussian blur #
         #######################
-
+        
+        if not rnd.random() < blured_data_percetage:
+            blur = 0
+                
         gaussian_filter = ImageFilter.GaussianBlur(
             radius=blur if not random_blur else rnd.random() * blur
         )
