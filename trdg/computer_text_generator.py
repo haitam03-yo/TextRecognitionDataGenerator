@@ -289,7 +289,6 @@ def _generate_paragraph_text(
     max_text_height: int = 1350,
     max_lines: int = 11
 ) -> Tuple:
-    print(text)
     contains_title = False
     flag = False
     # Load font
@@ -303,7 +302,6 @@ def _generate_paragraph_text(
     if isinstance(text, dict):
         title = text.get("title","أطلسيا")
         text = text.get("content","")
-        print('dict')
 
     # Dynamically estimate max width from text length
     estimated_width = min(len(text) * font_size // 1.5, 1000)  # reasonable upper bound
@@ -421,7 +419,6 @@ def _generate_paragraph_text(
 
 
     label = " ".join([line.replace("─", "") for line in lines if line.strip()][::-1])
-    print(contains_title)
     meta_data = {
         "text": label,
         "font": font.split("/")[-1].split(".")[0],
@@ -452,6 +449,5 @@ if __name__ == "__main__":
     )
 
     img.save("test_img.png")
-    print("Metadata:", meta)
 
     

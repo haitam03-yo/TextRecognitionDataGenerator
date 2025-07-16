@@ -329,10 +329,7 @@ class FakeTextDataGenerator(object):
             
             return meta_data
         else:
-            print(f"out_dir doesn't exist")
             if output_mask == 1:
-                print(f"final_image {final_image}, final_mask {final_mask}, meta_data {meta_data}")
                 raise Exception("output mask = 1")
                 
-            print(f"final_image {final_image}, meta_data {meta_data}")
             return final_image, meta_data
