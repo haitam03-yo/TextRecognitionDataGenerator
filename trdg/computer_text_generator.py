@@ -386,7 +386,7 @@ def _generate_paragraph_text(
             continue
         
         if line == "─":
-            image_font = ImageFont.truetype(font="/usr/share/fonts/truetype/noto/NotoSansMono-Light.ttf", size=font_size)
+            image_font = ImageFont.truetype(font="./fonts/NotoSansMono-Light.ttf", size=font_size)
             flag = True
             
         line_w = get_text_width(image_font, line)
