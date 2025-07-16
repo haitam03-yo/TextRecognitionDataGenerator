@@ -418,7 +418,7 @@ def _generate_paragraph_text(
             image_font = original_image_font
 
 
-    label = " ".join([line.replace("─", "") for line in lines if line.strip()][::-1])
+    label = " ".join([line.replace("─", "") for line in lines if line.strip()])
     meta_data = {
         "text": label,
         "font": font.split("/")[-1].split(".")[0],
