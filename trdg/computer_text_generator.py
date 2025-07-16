@@ -289,9 +289,9 @@ def _generate_paragraph_text(
     max_text_height: int = 1350,
     max_lines: int = 11
 ) -> Tuple:
-
-        
-    print(font)
+    print(text)
+    contains_title = False
+    flag = False
     # Load font
     if isinstance(font_size, list):
         font_size = rnd.randint(font_size[0], font_size[1])
@@ -301,8 +301,9 @@ def _generate_paragraph_text(
     
     title = ''
     if isinstance(text, dict):
-        title = text.get("title","AtlasIA")
+        title = text.get("title","أطلسيا")
         text = text.get("content","")
+        print('dict')
 
     # Dynamically estimate max width from text length
     estimated_width = min(len(text) * font_size // 1.5, 1000)  # reasonable upper bound
@@ -314,13 +315,16 @@ def _generate_paragraph_text(
 
     # Wrap Arabic text to fit max width
     
+    
     lines = wrap_text_by_pixels(text, image_font, max_width, max_lines)
     if title:
-        lines.insert(0, '')
+        rnd_num = rnd.random()
+        if rnd_num<0.5:
+            lines.insert(0, '')
+        else:
+            lines.insert(0, '─')
         lines.insert(0, title)
-    print('_'*20)
-    print(lines)
-    print('_'*20)
+        contains_title = True
     
     # Recalculate text height
     line_heights = [get_text_height(image_font, line) for line in lines]
@@ -335,7 +339,6 @@ def _generate_paragraph_text(
 
         
         text_width = max([get_text_width(image_font, line) for line in lines])
-        print("one line was removed")
 
     # Create images
     txt_img = Image.new("RGBA", (text_width, text_height), (0, 0, 0, 0))
@@ -365,29 +368,35 @@ def _generate_paragraph_text(
 
     # Draw text and mask
     current_y = 0
-    last_added_y = 0
-    
+    original_image_font = image_font
     for i, line in enumerate(lines): 
         if line=='':
+            #last_added_y = get_text_height(image_font, 'اب') + character_spacing
+            last_added_y = line_heights[i] + character_spacing
             current_y += last_added_y//2
-            print('+'*20)
-            print("entered")
-            print('+'*20)
             
             continue
         
-        line_w = get_text_width(image_font, line)
-        if title and i == 0:
-            rnd_num = rnd.random()
-            line_w = get_text_width(image_font, line)
-            if rnd_num > 0.5:
-                x = max(0, (text_width - line_w) // 2)  # center
-            else:
-                x = text_width - line_w 
-        else:
+        if line == "─":
+            image_font = ImageFont.truetype(font="/usr/share/fonts/truetype/noto/NotoSansMono-Light.ttf", size=font_size)
+            flag = True
             
-            x = text_width - line_w  
+        line_w = get_text_width(image_font, line)
+        x = text_width - line_w 
+        if contains_title and i == 0:
+            rnd_num = rnd.random()
+            if rnd_num<0.5:
+                x  = max(0, (text_width - line_w) // 2)  # center
         
+        if line == "─":
+            while line_w<(3*text_width/4):
+                line += line
+                line_w = get_text_width(image_font, line)
+            
+            x  = max(0, (text_width - line_w) // 2)  # center
+            
+            
+            
 
         draw.text( 
             (x, current_y), 
@@ -407,13 +416,42 @@ def _generate_paragraph_text(
         ) 
         last_added_y = line_heights[i] + character_spacing
         current_y += last_added_y
+        if flag:
+            image_font = original_image_font
 
 
-    # Crop output if fit is True
-    
+    label = " ".join([line.replace("─", "") for line in lines if line.strip()][::-1])
+    print(contains_title)
+    meta_data = {
+        "text": label,
+        "font": font.split("/")[-1].split(".")[0],
+        "contains_title": contains_title,
+    }
     if fit:
         bbox = txt_img.getbbox()
         if bbox:  # In case bbox is None (completely transparent)
             txt_img = txt_img.crop(bbox)
             txt_mask = txt_mask.crop(bbox)
-    return txt_img, txt_mask
+            
+    return txt_img, txt_mask, meta_data
+
+if __name__ == "__main__":
+    example_text = {
+        "title": "عنوان المثال",
+        "content": "هذا نص طويل لاختبار توليد الصورة بالنص العربي."
+    }
+
+    img, mask, meta = _generate_paragraph_text(
+        text=example_text,
+        font="/usr/share/fonts/custom-arabic/NotoKufiArabic-Black.ttf",  # Update to your actual path
+        text_color="#000000,#000000",
+        font_size=32,
+        space_width=10,
+        character_spacing=5,
+        fit=True,
+    )
+
+    img.save("test_img.png")
+    print("Metadata:", meta)
+
+    

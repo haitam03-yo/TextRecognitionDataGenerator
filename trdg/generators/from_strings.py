@@ -100,6 +100,7 @@ class GeneratorFromStrings:
         if self.generated_count == self.count:
             raise StopIteration
         self.generated_count += 1
+        
         return (
             FakeTextDataGenerator.generate(
                 self.generated_count,

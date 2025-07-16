@@ -71,7 +71,7 @@ class FakeTextDataGenerator(object):
                 raise ValueError("Vertical handwritten text is unavailable")
             image, mask = handwritten_text_generator.generate(text, text_color)
         else:
-            image, mask = computer_text_generator.generate(
+            image, mask, meta_data = computer_text_generator.generate(
                 text,
                 font,
                 text_color,
@@ -326,7 +326,13 @@ class FakeTextDataGenerator(object):
                         f.write(
                             " ".join([char] + [str(v) for v in bbox] + ["0"]) + "\n"
                         )
+            
+            return meta_data
         else:
+            print(f"out_dir doesn't exist")
             if output_mask == 1:
-                return final_image, final_mask
-            return final_image
+                print(f"final_image {final_image}, final_mask {final_mask}, meta_data {meta_data}")
+                raise Exception("output mask = 1")
+                
+            print(f"final_image {final_image}, meta_data {meta_data}")
+            return final_image, meta_data
