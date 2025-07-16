@@ -279,7 +279,7 @@ def _load_font(font, font_size, max_retries=3):
     tries = 0
     while tries < max_retries:
         try:
-            ImageFont.truetype(font=font, size=font_size)
+            return ImageFont.truetype(font=font, size=font_size)
         except Exception as e:
             font_paths = ["./fonts/NotoSansArabic_Condensed-Regular.ttf","./fonts/Mada-Regular.ttf","./fonts/NotoSansArabic_SemiCondensed-Regular.ttf","./fonts/Fustat-Regular.ttf","./fonts/NotoSansArabic-Regular.ttf","./fonts/NotoNaskhArabic-Regular.ttf","./fonts/Vazirmatn-Regular.ttf","./fonts/IBMPlexSansArabic-Regular.ttf","./fonts/NotoKufiArabic-Regular.ttf","./fonts/Amiri-Regular.ttf","./fonts/NotoSansArabic_ExtraCondensed-Regular.ttf"]
             font = rnd.choice(font_paths)
