@@ -275,6 +275,16 @@ def wrap_text_by_pixels(text, font, max_width, max_lines):
 
     return lines[:max_lines]
 
+def _load_font(font, font_size, max_retries=3):
+    tries = 0
+    while tries < max_retries:
+        try:
+            ImageFont.truetype(font=font, size=font_size)
+        except Exception as e:
+            font_paths = ["./fonts/NotoSansArabic_Condensed-Regular.ttf","./fonts/Mada-Regular.ttf","./fonts/NotoSansArabic_SemiCondensed-Regular.ttf","./fonts/Fustat-Regular.ttf","./fonts/NotoSansArabic-Regular.ttf","./fonts/NotoNaskhArabic-Regular.ttf","./fonts/Vazirmatn-Regular.ttf","./fonts/IBMPlexSansArabic-Regular.ttf","./fonts/NotoKufiArabic-Regular.ttf","./fonts/Amiri-Regular.ttf","./fonts/NotoSansArabic_ExtraCondensed-Regular.ttf"]
+            font = rnd.choice(font_paths)
+            print(f"[Retry {tries+1}] Error with font '{font}': {e}")
+            tries += 1
 
 def _generate_paragraph_text(
     text: str,
@@ -295,8 +305,8 @@ def _generate_paragraph_text(
     if isinstance(font_size, list):
         font_size = rnd.randint(font_size[0], font_size[1])
 
-        
-    image_font = ImageFont.truetype(font=font, size=font_size)
+    
+    image_font = _load_font(font, font_size)
     
     title = ''
     if isinstance(text, dict):
